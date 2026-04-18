@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Menu public",
+    "text": "Visible par tout le monde",
+    "perm": 1
+  },
+  {
+    "title": "Menu admin",
+    "text": "Réservé niveau 5+",
+    "perm": 5
+  },
+  {
+    "title": "Menu secret",
+    "text": "Ultra sécurisé",
+    "perm": 10
+  }
+]
