@@ -1,142 +1,2159 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Archives</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMAC-SHA256 Dev Tool</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #d4d4d4;
+            --header-bg: #2d2d30;
+            --section-bg: #2d2d30;
+            --border-color: #3e3e42;
+            --accent-color: #007acc;
+            --input-bg: #3c3c3c;
+            --input-border: #555;
+            --error-color: #f44747;
+            --success-color: #6a9955;
+            --valid-bg: #2d5016;
+            --invalid-bg: #5f1313;
+            --code-bg: #1e1e1e;
+        }
 
-<style>
-body {
-    margin:0;
-    font-family:Arial;
-    background:#0b1220;
-    color:white;
-    padding:20px;
-}
+        [data-theme="light"] {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --header-bg: #ffffff;
+            --section-bg: #ffffff;
+            --border-color: #dee2e6;
+            --accent-color: #007bff;
+            --input-bg: #ffffff;
+            --input-border: #ced4da;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+            --valid-bg: #d4edda;
+            --invalid-bg: #f8d7da;
+            --code-bg: #f8f9fa;
+        }
 
-.menu {
-    background:#111827;
-    margin-bottom:10px;
-    border-radius:8px;
-    overflow:hidden;
-    opacity:1;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.title {
-    padding:15px;
-    cursor:pointer;
-    background:#1f2937;
-    font-weight:bold;
-    display:flex;
-    justify-content:space-between;
-}
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-.content {
-    display:none;
-    padding:15px;
-    background:#0f172a;
-    color:#d1d5db;
-}
+        .header {
+            background-color: var(--header-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s;
+        }
 
-/* ouvert */
-.menu.open .content {
-    display:block;
-}
+        .header h1 {
+            color: var(--accent-color);
+            font-size: 1.5em;
+        }
 
-/* lock style */
-.locked {
-    opacity:0.6;
-}
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-.badge {
-    font-size:12px;
-    background:#2563eb;
-    padding:2px 6px;
-    border-radius:5px;
-}
-</style>
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .burger-menu {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.3s;
+        }
+
+        .burger-menu.open div:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .burger-menu.open div:nth-child(2) {
+            opacity: 0;
+        }
+
+        .burger-menu.open div:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .burger-menu div {
+            width: 25px;
+            height: 3px;
+            background-color: var(--text-color);
+            margin: 3px 0;
+            transition: all 0.3s;
+        }
+
+        .nav-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background-color: var(--section-bg);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            padding: 80px 20px 20px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .nav-menu.open {
+            right: 0;
+        }
+
+        .nav-menu ul {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin: 20px 0;
+        }
+
+        .nav-menu a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1.1em;
+            display: block;
+            padding: 10px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover, .nav-menu a.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+            transition: opacity 0.3s;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            background-color: var(--section-bg);
+            margin-bottom: 20px;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section h2 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 5px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px rgba(0, 122, 204, 0.5);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background-color: #005a9e;
+            transform: translateY(-1px);
+        }
+
+        .error {
+            color: var(--error-color);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .success {
+            color: var(--success-color);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .signature-display {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            font-family: 'Consolas', monospace;
+            word-break: break-all;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .download-btn {
+            background-color: var(--success-color);
+        }
+
+        .download-btn:hover {
+            background-color: #4e7a3a;
+        }
+
+        .inject-btn {
+            background-color: #ce9178;
+            color: var(--bg-color);
+        }
+
+        .inject-btn:hover {
+            background-color: #b8946f;
+        }
+
+        .verify-btn {
+            background-color: #569cd6;
+        }
+
+        .verify-btn:hover {
+            background-color: #3c7fb1;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .valid {
+            background-color: var(--valid-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .invalid {
+            background-color: var(--invalid-bg);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 300px;
+        }
+
+        .code-section {
+            background-color: var(--code-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .history-section {
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background-color: var(--input-bg);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            background-color: var(--section-bg);
+            transform: translateX(5px);
+        }
+
+        .clear-history {
+            background-color: var(--error-color);
+            margin-top: 10px;
+        }
+
+        .clear-history:hover {
+            background-color: #c42b2b;
+        }
+
+        .examples-section {
+            margin-top: 20px;
+        }
+
+        .example-btn {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
+            margin: 5px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .example-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Documentation styles */
+        .doc-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--input-bg);
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+        }
+
+        .doc-section h3 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .doc-section h4 {
+            color: var(--text-color);
+            margin: 20px 0 10px 0;
+        }
+
+        .doc-section ul, .doc-section ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .doc-section li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .doc-section p {
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .code-example {
+            background-color: var(--code-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .code-example pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .code-example code {
+            background-color: transparent;
+            color: var(--accent-color);
+            padding: 0;
+        }
+
+        .doc-section a {
+            color: var(--accent-color);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .doc-section a:hover {
+            border-bottom-color: var(--accent-color);
+        }
+
+        .doc-section strong {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .doc-section em {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Compilation examples styling */
+        .code-example .command {
+            color: #dcdcaa; /* GCC command color */
+            font-weight: bold;
+        }
+
+        .code-example .comment {
+            color: #4ec9b0; /* Comment color */
+            font-style: italic;
+        }
+
+        .code-example .info {
+            color: #9cdcfe; /* Info text color */
+        }
+    .code-example .textperso {
+            color: #ffffff; /* Info text color */
+        }
+
+        .code-example .error {
+            color: #f44747; /* Error color */
+        }
+
+        .code-example .success {
+            color: #4ec9b0; /* Success color */
+        }
+
+        .code-example .warning {
+            color: #ffcc02; /* Warning color */
+        }
+
+        /* Security note styling */
+        .security-note {
+            background-color: #1e1e1e;
+            border-left: 4px solid #569cd6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .security-note strong {
+            color: #569cd6;
+        }
+
+        /* Advanced History styles */
+        .advanced-history-setup {
+            background-color: var(--input-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            margin-bottom: 20px;
+        }
+
+        .advanced-history-setup h3 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+
+        .key-strength {
+            height: 4px;
+            background-color: var(--input-border);
+            border-radius: 2px;
+            margin: 8px 0;
+            transition: all 0.3s;
+        }
+
+        .key-strength.weak {
+            background-color: #f44747;
+            width: 33%;
+        }
+
+        .key-strength.medium {
+            background-color: #ffcc02;
+            width: 66%;
+        }
+
+        .key-strength.strong {
+            background-color: #4ec9b0;
+            width: 100%;
+        }
+
+        .encrypt-btn {
+            background-color: #569cd6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .encrypt-btn:hover {
+            background-color: #3c7fb1;
+        }
+
+        .decrypt-btn {
+            background-color: #4ec9b0;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .decrypt-btn:hover {
+            background-color: #3c9b8a;
+        }
+
+        .encrypted-history-display {
+            background-color: var(--section-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .encrypted-history-display h3 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+
+        .encrypted-history-list {
+            margin-bottom: 20px;
+        }
+
+        .encrypted-history-item {
+            background-color: var(--input-bg);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            transition: all 0.3s;
+        }
+
+        .encrypted-history-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .encrypted-history-item strong {
+            color: var(--accent-color);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .encrypted-history-item .timestamp {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .encrypted-history-item .key-display {
+            background-color: var(--code-bg);
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #f44747;
+            margin: 5px 0;
+        }
+
+        .encrypted-history-item .signature-display {
+            background-color: var(--code-bg);
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #4ec9b0;
+            word-break: break-all;
+        }
+
+        .clear-encrypted-history {
+            background-color: var(--error-color);
+            margin-right: 10px;
+        }
+
+        .clear-encrypted-history:hover {
+            background-color: #c42b2b;
+        }
+
+        .export-encrypted-history {
+            background-color: #569cd6;
+        }
+
+        .export-encrypted-history:hover {
+            background-color: #3c7fb1;
+        }
+
+        .encryption-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .encryption-status.success {
+            background-color: var(--valid-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .encryption-status.error {
+            background-color: var(--invalid-bg);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .encrypted-data-compact {
+            background: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-top: 5px;
+        }
+
+        .encrypted-blob {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: var(--text-accent);
+            word-break: break-all;
+            background: var(--bg-tertiary);
+            padding: 8px;
+            border-radius: 4px;
+            display: block;
+            line-height: 1.4;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .advanced-history-btn {
+            background-color: #ffcc02;
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+
+        .advanced-history-btn:hover {
+            background-color: #e6b800;
+        }
+
+        /* Login section styles */
+        .login-section {
+            background-color: var(--input-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            margin-bottom: 20px;
+        }
+
+        .login-section h3 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+
+        .login-btn {
+            background-color: #4ec9b0;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .login-btn:hover {
+            background-color: #3c9b8a;
+        }
+
+        .reset-key-btn {
+            background-color: #f44747;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .reset-key-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .logout-btn {
+            background-color: #ffcc02;
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .logout-btn:hover {
+            background-color: #e6b800;
+        }
+
+        .login-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .login-status.success {
+            background-color: var(--valid-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .login-status.error {
+            background-color: var(--invalid-bg);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+    </style>
 </head>
-
 <body>
+    <div class="header">
+        <h1>HMAC-SHA256 Dev Tool</h1>
+        <div class="header-controls">
+            <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+            <div class="burger-menu" onclick="toggleMenu()">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+    </div>
 
-<h2>📁 Archives</h2>
+    <nav class="nav-menu" id="nav-menu">
+        <ul>
+            <li><a href="#" onclick="showSection('generate')" class="active">Generer Signature</a></li>
+            <li><a href="#" onclick="showSection('verify')">Verifier Signature</a></li>
+            <li><a href="#" onclick="showSection('code')">Code C</a></li>
+            <li><a href="#" onclick="showSection('advanced-history')">Historique Avancé</a></li>
+            <li><a href="#" onclick="showSection('docs')">Documentation</a></li>
+        </ul>
+    </nav>
 
-<input id="search" placeholder="🔎 Rechercher..." oninput="searchMenus()" style="width:100%;padding:10px;margin-bottom:10px;">
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-<div id="container"></div>
+    <div class="container">
+        <div id="generate-section" class="section active">
+            <h2>Generer Signature HMAC-SHA256</h2>
+            <div class="examples-section">
+                <strong>Exemples rapides:</strong><br>
+                <button class="example-btn" onclick="loadExample('Hello World', 'mySecretKey')">Hello World</button>
+                <button class="example-btn" onclick="loadExample('API Request', 'apiKey123')">API Request</button>
+                <button class="example-btn" onclick="loadExample('User Data', 'encryptionKey')">User Data</button>
+            </div>
+            <input type="text" id="gen-message" placeholder="Message a signer..." required>
+            <input type="password" id="gen-key" placeholder="Cle secrete..." required>
+            <button onclick="generateSignature()">Generer Signature</button>
+            <div id="gen-error" class="error"></div>
+            <div id="gen-result" class="signature-display" style="display: none;">
+                <strong>Signature HEX:</strong><br>
+                <span id="gen-signature-hex"></span>
+                <button class="copy-btn" onclick="copyToClipboard('gen-signature-hex')">Copier</button>
+            </div>
+            <button id="gen-download" class="download-btn" style="display: none;" onclick="downloadSignature()">Telecharger Signature</button>
+            <div class="history-section">
+                <strong>Historique des signatures:</strong>
+                <div id="signature-history"></div>
+                <div class="history-controls">
+                    <button class="clear-history" onclick="clearHistory()">Effacer Historique</button>
+                    <button class="advanced-history-btn" onclick="showAdvancedHistory()">Historique Avancé</button>
+                </div>
+            </div>
+        </div>
 
-<script>
-let db = [];
-let filtered = [];
+        <div id="verify-section" class="section">
+            <h2>Verifier Signature HMAC-SHA256</h2>
+            <input type="text" id="ver-message" placeholder="Message original..." required>
+            <input type="password" id="ver-key" placeholder="Cle secrete..." required>
+            <input type="text" id="ver-signature" placeholder="Signature a verifier (HEX)..." required>
+            <button class="verify-btn" onclick="verifySignature()">Verifier Signature</button>
+            <div id="ver-error" class="error"></div>
+            <div id="ver-result" class="result-box" style="display: none;"></div>
+        </div>
 
-/* 👤 niveau client */
-const clientLevel = 1;
+        <div id="code-section" class="section">
+            <h2>Code C Genere (Verificateur)</h2>
+            <button class="inject-btn" onclick="injectKey()">Injecter la Cle</button>
+            <div class="code-section">
+                <textarea id="c-code" readonly>
+// Programme de verification HMAC-SHA256 en C
+// Utilise OpenSSL pour recalculer et comparer la signature
+// Compilez avec: gcc -o verificateur verificateur.c -lssl -lcrypto
 
-/* 🌐 URL de la DB (CHANGE ICI) */
-const DB_URL = "https://raw.githubusercontent.com/foodlyclient/db/refs/heads/main/db.txt";
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;openssl/hmac.h&gt;
+#include &lt;openssl/sha.h&gt;
 
-/* 🔄 load */
-async function load(){
-    try {
-        const res = await fetch(DB_URL);
-        db = await res.json();
-        filtered = db;
-        render();
-    } catch (e) {
-        console.error("Erreur chargement DB:", e);
-        alert("Impossible de charger la base de données");
+// Fonction pour convertir hex en bytes
+void hex_to_bytes(const char *hex, unsigned char *bytes, size_t len) {
+    for (size_t i = 0; i &lt; len; i++) {
+        sscanf(hex + 2 * i, "%2hhx", &bytes[i]);
     }
 }
 
-/* 📄 render */
-function render(){
-    const c = document.getElementById("container");
-    c.innerHTML = "";
+// Fonction pour convertir bytes en hex
+void bytes_to_hex(const unsigned char *bytes, size_t len, char *hex) {
+    for (size_t i = 0; i &lt; len; i++) {
+        sprintf(hex + 2 * i, "%02x", bytes[i]);
+    }
+    hex[2 * len] = '\0';
+}
 
-    filtered.forEach((m) => {
-        const div = document.createElement("div");
-        div.className = "menu";
+int main() {
+    // Cle secrete (a remplacer par votre cle)
+    const char *key_hex = "CLE_ICI";  // PLACEHOLDER - sera remplace par la cle en hex
+    size_t key_len = strlen(key_hex) / 2;
+    unsigned char *key = malloc(key_len);
+    if (!key) {
+        printf("Erreur d'allocation memoire\\n");
+        return 1;
+    }
+    hex_to_bytes(key_hex, key, key_len);
 
-        if(m.perm > clientLevel){
-            div.classList.add("locked");
+    // Demander le message a l'utilisateur
+    char message[1024];
+    printf("Entrez le message: ");
+    fgets(message, sizeof(message), stdin);
+    message[strcspn(message, "\\n")] = 0;  // Supprimer le newline
+
+    // Demander la signature a verifier
+    char signature_hex[65];  // SHA256 = 32 bytes = 64 caracteres hex + null
+    printf("Entrez la signature (en hex): ");
+    fgets(signature_hex, sizeof(signature_hex), stdin);
+    signature_hex[strcspn(signature_hex, "\\n")] = 0;
+
+    // Calculer le HMAC-SHA256
+    unsigned char hmac_result[EVP_MAX_MD_SIZE];
+    unsigned int hmac_len;
+
+    HMAC_CTX *ctx = HMAC_CTX_new();
+    if (!ctx) {
+        printf("Erreur lors de l'initialisation HMAC\\n");
+        free(key);
+        return 1;
+    }
+
+    if (!HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL)) {
+        printf("Erreur lors de l'initialisation HMAC\\n");
+        HMAC_CTX_free(ctx);
+        free(key);
+        return 1;
+    }
+
+    if (!HMAC_Update(ctx, (unsigned char*)message, strlen(message))) {
+        printf("Erreur lors de la mise a jour HMAC\\n");
+        HMAC_CTX_free(ctx);
+        free(key);
+        return 1;
+    }
+
+    if (!HMAC_Final(ctx, hmac_result, &hmac_len)) {
+        printf("Erreur lors de la finalisation HMAC\\n");
+        HMAC_CTX_free(ctx);
+        free(key);
+        return 1;
+    }
+
+    HMAC_CTX_free(ctx);
+    free(key);
+
+    // Convertir le resultat en hex
+    char calculated_hex[65];
+    bytes_to_hex(hmac_result, hmac_len, calculated_hex);
+
+    // Comparer les signatures
+    if (strcmp(signature_hex, calculated_hex) == 0) {
+        printf("OK - Signature valide\\n");
+    } else {
+        printf("FAIL - Signature invalide\\n");
+        printf("Attendu: %s\\n", calculated_hex);
+        printf("Recu:    %s\\n", signature_hex);
+    }
+
+    return 0;
+}
+                </textarea>
+            </div>
+            <button id="download-c" class="download-btn" onclick="downloadCCode()">Telecharger Code C</button>
+        </div>
+
+        <div id="advanced-history-section" class="section">
+            <h2>Historique Avancé (Crypté)</h2>
+
+            <div class="login-section" id="login-section" style="display: none;">
+                <h3>Connexion à l'historique crypté</h3>
+                <p>Entrez votre clé pour accéder à l'historique complet.</p>
+                <input type="password" id="login-encryption-key" placeholder="Votre clé de cryptage..." required>
+                <button class="login-btn" onclick="loginToEncryptedHistory()">Se connecter</button>
+                <button class="reset-key-btn" onclick="resetEncryptionKey()">Réinitialiser la clé</button>
+                <div class="login-status" id="login-status"></div>
+            </div>
+
+            <div class="advanced-history-setup" id="setup-section">
+                <h3>Configuration de la clé de cryptage</h3>
+                <p>Définissez une clé secrète pour crypter votre historique complet. Cette clé sera nécessaire pour décrypter et consulter l'historique.</p>
+                <input type="password" id="history-encryption-key" placeholder="Clé de cryptage pour l'historique..." required>
+                <div class="key-strength" id="key-strength-indicator"></div>
+                <button class="encrypt-btn" onclick="setupEncryptedHistory()">Configurer Cryptage</button>
+            </div>
+
+            <div class="encrypted-history-display" id="encrypted-history-display" style="display: none;">
+                <h3>Historique Crypté Complet <span id="encrypted-history-count" class="entry-count">(0 entrées)</span></h3>
+                <p><em>Historique décrypté avec succès. Toutes les données (messages complets, clés, signatures) sont visibles.</em></p>
+                <div id="encrypted-history-list"></div>
+                <div class="history-controls">
+                    <button class="logout-btn" onclick="logoutFromEncryptedHistory()">Se déconnecter</button>
+                    <button class="clear-encrypted-history" onclick="clearEncryptedHistory()">Effacer Historique Crypté</button>
+                    <button class="export-encrypted-history" onclick="exportEncryptedHistory()">Exporter Historique</button>
+                </div>
+            </div>
+
+            <div class="encryption-status" id="encryption-status"></div>
+        </div>
+
+        <div id="docs-section" class="section">
+            <h2>Documentation - HMAC-SHA256</h2>
+
+            <div class="doc-section">
+                <h3>Qu'est-ce que HMAC-SHA256 ?</h3>
+                <p><strong>HMAC-SHA256</strong> (Hash-based Message Authentication Code avec SHA-256) est un algorithme cryptographique qui combine une fonction de hachage (SHA-256) avec une clé secrète pour produire une signature numérique. Cette signature permet de :</p>
+                <ul>
+                    <li><strong>Vérifier l'intégrité</strong> : S'assurer que le message n'a pas été modifié</li>
+                    <li><strong>Vérifier l'authenticité</strong> : Confirmer que le message vient bien de l'expéditeur légitime</li>
+                    <li><strong>Prévenir les attaques</strong> : Les signatures HMAC sont résistantes aux attaques par collision</li>
+                </ul>
+            </div>
+
+            <div class="doc-section">
+                <h3>Comment ca marche ?</h3>
+                <p>Le processus HMAC utilise deux passes de hachage :</p>
+                <ol>
+                    <li><strong>Preparation des clés</strong> : La clé secrète est étendue ou réduite à la taille appropriée</li>
+                    <li><strong>Premiere passe</strong> : Hachage avec une clé XORée avec ipad (0x36)</li>
+                    <li><strong>Deuxieme passe</strong> : Hachage du resultat precedent avec une clé XORée avec opad (0x5C)</li>
+                    <li><strong>Resultat</strong> : Signature de 256 bits (64 caracteres hexadecimaux)</li>
+                </ol>
+                <div class="code-example">
+                    <strong>Formule HMAC :</strong><br>
+                    HMAC(K, M) = H((K ⊕ opad) || H((K ⊕ ipad) || M))
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Utilisation de l'outil</h3>
+
+                <h4>1. Generer une signature</h4>
+                <ol>
+                    <li>Allez dans l'onglet "Generer Signature"</li>
+                    <li>Entrez votre message dans le champ "Message a signer"</li>
+                    <li>Entrez votre cle secrete dans le champ "Cle secrete"</li>
+                    <li>Cliquez sur "Generer Signature"</li>
+                    <li>Copiez ou telechargez la signature obtenue</li>
+                </ol>
+
+                <h4>2. Verifier une signature</h4>
+                <ol>
+                    <li>Allez dans l'onglet "Verifier Signature"</li>
+                    <li>Entrez le message original</li>
+                    <li>Entrez la meme cle secrete utilisee pour generer</li>
+                    <li>Collez la signature a verifier (format hex)</li>
+                    <li>Cliquez sur "Verifier Signature"</li>
+                </ol>
+
+                <h4>3. Generer le code C</h4>
+                <ol>
+                    <li>Assurez-vous d'avoir entre une cle dans les onglets precedents</li>
+                    <li>Allez dans l'onglet "Code C"</li>
+                    <li>Cliquez sur "Injecter la Cle" pour inserer votre cle dans le code</li>
+                    <li>Telechargez le fichier "verificateur.c"</li>
+                    <li>Compilez avec : <code>gcc -o verificateur verificateur.c -lssl -lcrypto</code></li>
+                </ol>
+            </div>
+
+            <div class="doc-section">
+                <h3>Compilation et utilisation du code C</h3>
+
+                <h4>Prérequis système</h4>
+                <p>Avant de compiler le code C généré, assurez-vous d'avoir installé les bibliothèques nécessaires :</p>
+                <ul>
+                    <li><strong>Ubuntu/Debian</strong> : <code>sudo apt-get install build-essential libssl-dev</code></li>
+                    <li><strong>CentOS/RHEL</strong> : <code>sudo yum install gcc openssl-devel</code></li>
+                    <li><strong>macOS</strong> : <code>brew install openssl</code> (avec Homebrew)</li>
+                    <li><strong>Windows</strong> : Installez MinGW-w64 ou MSYS2 avec OpenSSL</li>
+                </ul>
+
+                <h4>Procédure de compilation</h4>
+                <p>Suivez ces étapes pour compiler le vérificateur HMAC-SHA256 :</p>
+
+                <div class="code-example">
+                    <strong>Étape 1 : Téléchargez le code C</strong><br>
+                    <span class="comment"># Dans l'onglet "Code C" de l'application</span><br>
+                    <span class="info">Cliquez sur "Injecter la Cle"</span><br>
+                    <span class="info">Cliquez sur "Telecharger Code C"</span><br>
+                    <br>
+                    <strong>Étape 2 : Compilation avec GCC</strong><br>
+                    <span class="command">gcc -o verificateur verificateur.c -lssl -lcrypto</span><br>
+                    <br>
+                    <strong>Étape 3 : Vérification de la compilation</strong><br>
+                    <span class="command">ls -la verificateur</span><br>
+                    <span class="comment"># Doit afficher un fichier exécutable</span><br>
+                </div>
+
+                <h4>Utilisation du programme compilé</h4>
+                <p>Le programme compilé peut être utilisé de deux manières :</p>
+
+                <h5>Mode interactif</h5>
+                <div class="code-example">
+                    <span class="command">./verificateur</span><br>
+                    <span class="comment"># Le programme vous demandera le message et la signature</span>
+                </div>
+
+                <h5>Mode arguments (recommandé pour l'automatisation)</h5>
+                <div class="code-example">
+                    <span class="command">./verificateur "votre_message" "signature_hex"</span><br>
+                    <br>
+                    <strong>Exemple concret :</strong><br>
+                    <span class="command">./verificateur "Hello World" "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e49"</span><br>
+                    <span class="success"># Retourne : Signature valide</span>
+                </div>
+
+                <h4>Dépannage courant</h4>
+                <div class="code-example">
+                    <strong class="error">Erreur : "openssl/ssl.h: No such file or directory"</strong><br>
+                    <span class="command"># Solution : Installer les headers OpenSSL</span><br>
+                    <span class="command">sudo apt-get install libssl-dev</span><br>
+                    <br>
+                    <strong class="error">Erreur : "undefined reference to 'HMAC'"</strong><br>
+                    <span class="command"># Solution : Vérifier les flags de compilation</span><br>
+                    <span class="command">gcc -o verificateur verificateur.c -lssl -lcrypto -I/usr/include/openssl</span><br>
+                    <br>
+                    <strong class="error">Erreur : "permission denied"</strong><br>
+                    <span class="command"># Solution : Rendre le programme exécutable</span><br>
+                    <span class="command">chmod +x verificateur</span>
+                </div>
+
+                <h4>Options de compilation avancées</h4>
+                <p>Pour optimiser les performances en production :</p>
+                <div class="code-example">
+                    <span class="command">gcc -O3 -march=native -o verificateur verificateur.c -lssl -lcrypto</span><br>
+                    <span class="comment"># Optimisation niveau 3 + optimisations CPU spécifiques</span><br>
+                    <br>
+                    <span class="command">gcc -g -Wall -Wextra -o verificateur verificateur.c -lssl -lcrypto</span><br>
+                    <span class="comment"># Compilation avec debug et warnings étendus</span>
+                </div>
+
+                <div class="security-note">
+                    <strong>ℹ️ Note de sécurité :</strong><br>
+                    <span class="info">Conservez la clé secrète de manière sécurisée et ne l'incluez jamais</span><br>
+                    <span class="info">dans des systèmes de contrôle de version ou des fichiers partagés.</span>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Exemples pratiques</h3>
+
+                <h4>API Web sécurisee</h4>
+                <p>Pour securiser les appels API :</p>
+                <div class="code-example">
+                    Message: "GET /api/users/123"<br>
+                    Cle: "myApiSecretKey2024"<br>
+                    Signature: <em>(generee automatiquement)</em>
+                </div>
+
+                <h4>Verification de fichiers</h4>
+                <p>Pour verifier l'integrite d'un fichier :</p>
+                <div class="code-example">
+                    Message: <em>(contenu du fichier)</em><br>
+                    Cle: "fileIntegrityKey"<br>
+                    Signature: <em>(stockee avec le fichier)</em>
+                </div>
+
+                <h4>JWT-like tokens</h4>
+                <p>Pour creer des tokens simples :</p>
+                <div class="code-example">
+                    Message: "user=john&exp=1640995200"<br>
+                    Cle: "jwtSecretKey"<br>
+                    Signature: <em>(ajoutee au token)</em>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Bonnes pratiques de securite</h3>
+                <ul>
+                    <li><strong>Cles longues</strong> : Utilisez des cles d'au moins 256 bits (32 caracteres)</li>
+                    <li><strong>Cles uniques</strong> : Une cle differente par usage/service</li>
+                    <li><strong>Rotation</strong> : Changez regulierement vos cles secretes</li>
+                    <li><strong>Stockage securise</strong> : Ne stockez jamais les cles en clair dans le code</li>
+                    <li><strong>HTTPS</strong> : Utilisez toujours HTTPS pour transmettre les signatures</li>
+                    <li><strong>Timing attacks</strong> : Comparez les signatures de maniere constante en temps</li>
+                </ul>
+            </div>
+
+            <div class="doc-section">
+                <h3>Implementation technique</h3>
+
+                <h4>JavaScript (Web Crypto API)</h4>
+                <div class="code-example">
+                    <pre><code>const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secretKey),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+);
+const signature = await crypto.subtle.sign('HMAC', key, messageBuffer);</code></pre>
+                </div>
+
+                <h4>C (OpenSSL)</h4>
+                <div class="code-example">
+                    <pre><code>HMAC_CTX *ctx = HMAC_CTX_new();
+HMAC_Init_ex(ctx, key, key_len, EVP_sha256(), NULL);
+HMAC_Update(ctx, message, strlen(message));
+HMAC_Final(ctx, result, &len);
+HMAC_CTX_free(ctx);</code></pre>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3>Compatibilite et formats</h3>
+                <ul>
+                    <li><strong>Format de sortie</strong> : Hexadecimal (64 caracteres pour SHA-256)</li>
+                    <li><strong>Encodage</strong> : UTF-8 pour les messages texte</li>
+                    <li><strong>Cross-platform</strong> : Compatible entre JS et C avec les memes parametres</li>
+                    <li><strong>Longueur fixe</strong> : Toutes les signatures font exactement 64 caracteres hex</li>
+                </ul>
+            </div>
+
+            <div class="doc-section">
+                <h3>Ressources supplementaires</h3>
+                <ul>
+                    <li><a href="https://tools.ietf.org/html/rfc2104" target="_blank">RFC 2104 - HMAC specification</a></li>
+                    <li><a href="https://tools.ietf.org/html/rfc6234" target="_blank">RFC 6234 - SHA-256 specification</a></li>
+                    <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API" target="_blank">Web Crypto API documentation</a></li>
+                    <li><a href="https://www.openssl.org/docs/manmaster/man3/HMAC.html" target="_blank">OpenSSL HMAC documentation</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
         }
 
-        div.innerHTML = `
-            <div class="title">
-                <span>${m.title}</span>
-                <span class="badge">lvl ${m.perm}</span>
-            </div>
-            <div class="content">${m.text}</div>
-        `;
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
 
-        div.querySelector(".title").onclick = () => {
+        function updateThemeButton(theme) {
+            const button = document.querySelector('.theme-toggle');
+            button.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        }
 
-            // 🚫 BLOQUAGE ouverture
-            if(m.perm > clientLevel){
-                alert("🔒 Niveau insuffisant (niveau requis: " + m.perm + ")");
+        // Menu management
+        function toggleMenu() {
+            const menu = document.getElementById('nav-menu');
+            const burger = document.querySelector('.burger-menu');
+            const overlay = document.getElementById('overlay');
+            menu.classList.toggle('open');
+            burger.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.remove('active'));
+
+            // Remove active class from nav links
+            const navLinks = document.querySelectorAll('.nav-menu a');
+            navLinks.forEach(link => link.classList.remove('active'));
+
+            // Show selected section
+            document.getElementById(sectionId + '-section').classList.add('active');
+
+            // Add active class to clicked nav link
+            event.target.classList.add('active');
+
+            // Close menu on mobile
+            toggleMenu();
+        }
+
+        // Signature history management
+        function saveToHistory(message, key, signature) {
+            const history = JSON.parse(localStorage.getItem('signatureHistory') || '[]');
+            const entry = {
+                message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+                signature: signature,
+                timestamp: new Date().toLocaleString(),
+                key: key // Don't store the actual key for security
+            };
+            history.unshift(entry);
+            if (history.length > 10) history.pop(); // Keep only last 10
+            localStorage.setItem('signatureHistory', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const history = JSON.parse(localStorage.getItem('signatureHistory') || '[]');
+            const historyDiv = document.getElementById('signature-history');
+            historyDiv.innerHTML = '';
+
+            if (history.length === 0) {
+                historyDiv.innerHTML = '<p>Aucune signature dans l\'historique</p>';
                 return;
             }
 
-            div.classList.toggle("open");
+            history.forEach((entry, index) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <strong>${entry.message}</strong><br>
+                    <small>${entry.timestamp}</small><br>
+                    <code>${entry.signature.substring(0, 32)}...</code>
+                `;
+                item.onclick = () => loadFromHistory(entry);
+                historyDiv.appendChild(item);
+            });
+        }
+
+        function loadFromHistory(entry) {
+            document.getElementById('gen-message').value = entry.message;
+            document.getElementById('gen-signature-hex').textContent = entry.signature;
+            document.getElementById('gen-result').style.display = 'block';
+            document.getElementById('gen-download').style.display = 'inline-block';
+            window.currentSignature = entry.signature;
+            showSection('generate');
+        }
+
+        function clearHistory() {
+            if (confirm('Effacer tout l\'historique des signatures ?')) {
+                localStorage.removeItem('signatureHistory');
+                updateHistoryDisplay();
+            }
+        }
+
+        // Advanced Encrypted History Functions
+        function showAdvancedHistory() {
+            showSection('advanced-history');
+        }
+
+        async function setupEncryptedHistory() {
+            const keyInput = document.getElementById('history-encryption-key');
+            const masterKey = keyInput.value.trim();
+
+            if (!masterKey) {
+                showEncryptionStatus('Veuillez entrer une clé de cryptage', 'error');
+                return;
+            }
+
+            if (masterKey.length < 8) {
+                showEncryptionStatus('La clé doit contenir au moins 8 caractères', 'error');
+                return;
+            }
+
+            try {
+                // Create a hash of the master key for verification
+                const masterKeyHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(masterKey));
+                const masterKeyHashArray = Array.from(new Uint8Array(masterKeyHash));
+
+                // Generate a random encryption key for the history data
+                const historyKey = await crypto.subtle.generateKey(
+                    { name: 'AES-GCM', length: 256 },
+                    true,
+                    ['encrypt', 'decrypt']
+                );
+
+                // Encrypt the history key with the master key using PBKDF2
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    new TextEncoder().encode(masterKey),
+                    'PBKDF2',
+                    false,
+                    ['deriveBits', 'deriveKey']
+                );
+
+                const salt = crypto.getRandomValues(new Uint8Array(16));
+                const derivedKey = await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: salt,
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['encrypt']
+                );
+
+                // Encrypt the history key
+                const exportedHistoryKey = await crypto.subtle.exportKey('raw', historyKey);
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encryptedHistoryKey = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    derivedKey,
+                    exportedHistoryKey
+                );
+
+                // Store encrypted history key and master key hash
+                const encryptedKeyInfo = {
+                    encryptedKey: Array.from(new Uint8Array(encryptedHistoryKey)),
+                    iv: Array.from(iv),
+                    salt: Array.from(salt)
+                };
+
+                localStorage.setItem('encryptedHistoryKeyInfo', JSON.stringify(encryptedKeyInfo));
+                localStorage.setItem('encryptedHistoryMasterKeyHash', JSON.stringify(masterKeyHashArray));
+                localStorage.setItem('encryptedHistory', JSON.stringify([]));
+
+                // Store the history key in session for immediate use
+                sessionStorage.setItem('currentHistoryKey', JSON.stringify(await crypto.subtle.exportKey('raw', historyKey)));
+
+                showEncryptionStatus('Cryptage configuré avec succès !', 'success');
+
+                // Switch to login section
+                setTimeout(() => {
+                    document.getElementById('login-section').style.display = 'block';
+                    document.getElementById('setup-section').style.display = 'none';
+                    document.getElementById('encrypted-history-display').style.display = 'block';
+                    displayEncryptedHistory([]);
+                }, 1500);
+
+            } catch (error) {
+                showEncryptionStatus('Erreur lors de la configuration du cryptage', 'error');
+                console.error('Encryption setup error:', error);
+            }
+        }
+
+        async function saveToEncryptedHistory(message, key, signature) {
+            // Check if encrypted history is configured
+            const keyInfoStr = localStorage.getItem('encryptedHistoryKeyInfo');
+            if (!keyInfoStr) return; // No encryption configured
+
+            const historyKeyData = sessionStorage.getItem('currentHistoryKey');
+            if (!historyKeyData) {
+                // User is not logged in, but encryption is configured
+                // Save to a temporary storage that will be imported when user logs in
+                const tempHistory = JSON.parse(localStorage.getItem('tempEncryptedHistory') || '[]');
+                const entry = {
+                    message: message,
+                    key: key,
+                    signature: signature,
+                    timestamp: new Date().toISOString()
+                };
+                tempHistory.unshift(entry);
+                if (tempHistory.length > 10) tempHistory.pop(); // Keep only last 10 temp entries
+                localStorage.setItem('tempEncryptedHistory', JSON.stringify(tempHistory));
+                console.log('Saved to temporary encrypted history');
+                return;
+            }
+
+            try {
+                const historyKey = await crypto.subtle.importKey(
+                    'raw',
+                    new Uint8Array(JSON.parse(historyKeyData)),
+                    'AES-GCM',
+                    false,
+                    ['encrypt']
+                );
+
+                const history = JSON.parse(localStorage.getItem('encryptedHistory') || '[]');
+                const entry = {
+                    message: message,
+                    key: key,
+                    signature: signature,
+                    timestamp: new Date().toISOString()
+                };
+
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encryptedData = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    historyKey,
+                    new TextEncoder().encode(JSON.stringify(entry))
+                );
+
+                const encryptedEntry = {
+                    iv: Array.from(iv),
+                    data: Array.from(new Uint8Array(encryptedData))
+                };
+
+                history.unshift(encryptedEntry);
+                if (history.length > 100) history.pop(); // Keep only last 100 entries
+
+                localStorage.setItem('encryptedHistory', JSON.stringify(history));
+                console.log('Saved to encrypted history, total entries:', history.length);
+
+                // Auto-refresh display if user is logged in
+                if (document.getElementById('encrypted-history-display').style.display !== 'none') {
+                    await loadEncryptedHistoryFromSession();
+                }
+
+            } catch (error) {
+                console.error('Error saving to encrypted history:', error);
+            }
+        }
+
+        async function loginToEncryptedHistory() {
+            const keyInput = document.getElementById('login-encryption-key');
+            const masterKey = keyInput.value.trim();
+
+            if (!masterKey) {
+                showLoginStatus('Veuillez entrer votre clé', 'error');
+                return;
+            }
+
+            try {
+                const masterKeyHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(masterKey));
+                const masterKeyHashArray = Array.from(new Uint8Array(masterKeyHash));
+                const storedHash = JSON.parse(localStorage.getItem('encryptedHistoryMasterKeyHash'));
+
+                // Verify master key
+                if (!storedHash || !masterKeyHashArray.every((val, index) => val === storedHash[index])) {
+                    showLoginStatus('Clé incorrecte', 'error');
+                    return;
+                }
+
+                // Decrypt the history key
+                const keyInfo = JSON.parse(localStorage.getItem('encryptedHistoryKeyInfo'));
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    new TextEncoder().encode(masterKey),
+                    'PBKDF2',
+                    false,
+                    ['deriveBits', 'deriveKey']
+                );
+
+                const derivedKey = await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: new Uint8Array(keyInfo.salt),
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['decrypt']
+                );
+
+                const decryptedHistoryKey = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: new Uint8Array(keyInfo.iv) },
+                    derivedKey,
+                    new Uint8Array(keyInfo.encryptedKey)
+                );
+
+                // Store decrypted key in session for use
+                sessionStorage.setItem('currentHistoryKey', JSON.stringify(Array.from(new Uint8Array(decryptedHistoryKey))));
+
+                // Load and display history
+                await loadEncryptedHistoryFromSession();
+                showLoginStatus('Connexion réussie !', 'success');
+
+                // Hide login section, show history
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('encrypted-history-display').style.display = 'block';
+
+                // Import existing history if encrypted history is empty
+                await importExistingHistoryToEncrypted();
+
+            } catch (error) {
+                showLoginStatus('Erreur de connexion', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function loadEncryptedHistoryFromSession() {
+            const historyKeyData = sessionStorage.getItem('currentHistoryKey');
+            if (!historyKeyData) {
+                console.log('No history key in session');
+                return;
+            }
+
+            try {
+                const historyKey = await crypto.subtle.importKey(
+                    'raw',
+                    new Uint8Array(JSON.parse(historyKeyData)),
+                    'AES-GCM',
+                    false,
+                    ['decrypt']
+                );
+
+                const history = JSON.parse(localStorage.getItem('encryptedHistory') || '[]');
+                console.log('Encrypted history entries:', history.length);
+
+                const decryptedHistory = [];
+                const encryptedData = [];
+
+                for (const encryptedEntry of history) {
+                    try {
+                        const decryptedBytes = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: new Uint8Array(encryptedEntry.iv) },
+                            historyKey,
+                            new Uint8Array(encryptedEntry.data)
+                        );
+
+                        const entry = JSON.parse(new TextDecoder().decode(decryptedBytes));
+                        decryptedHistory.push(entry);
+                        encryptedData.push({
+                            iv: encryptedEntry.iv,
+                            data: encryptedEntry.data,
+                            decrypted: entry
+                        });
+                    } catch (decryptError) {
+                        console.error('Failed to decrypt entry:', decryptError);
+                    }
+                }
+
+                console.log('Decrypted history entries:', decryptedHistory.length);
+                console.log('Encrypted data entries:', encryptedData.length);
+
+                if (decryptedHistory.length > 0) {
+                    console.log('First entry sample:', decryptedHistory[0]);
+                    console.log('First encrypted data sample:', encryptedData[0]);
+                }
+
+                displayEncryptedHistory(decryptedHistory, encryptedData);
+
+            } catch (error) {
+                console.error('Error loading encrypted history:', error);
+                showEncryptionStatus('Erreur lors du chargement de l\'historique crypté', 'error');
+                displayEncryptedHistory([], []);
+            }
+        }
+
+        async function importExistingHistoryToEncrypted() {
+            const existingEncryptedHistory = JSON.parse(localStorage.getItem('encryptedHistory') || '[]');
+            const tempHistory = JSON.parse(localStorage.getItem('tempEncryptedHistory') || '[]');
+            let importedCount = 0;
+
+            // Import temporary entries first (most recent)
+            if (tempHistory.length > 0) {
+                console.log('Importing temporary history entries:', tempHistory.length);
+                for (const entry of tempHistory) {
+                    await saveToEncryptedHistory(entry.message, entry.key, entry.signature);
+                    importedCount++;
+                }
+                localStorage.removeItem('tempEncryptedHistory');
+            }
+
+            // Import existing normal history if encrypted history is still empty
+            if (existingEncryptedHistory.length === 0) {
+                const normalHistory = JSON.parse(localStorage.getItem('signatureHistory') || '[]');
+                if (normalHistory.length > 0) {
+                    console.log('Importing existing normal history:', normalHistory.length);
+                    for (const entry of normalHistory) {
+                        await saveToEncryptedHistory(entry.message, '[CLE_NON_STOCKEE]', entry.signature);
+                        importedCount++;
+                    }
+                }
+            }
+
+            // Show feedback if entries were imported
+            if (importedCount > 0) {
+                showEncryptionStatus(`${importedCount} entrée(s) importée(s) dans l'historique crypté`, 'success');
+            }
+
+            // Reload the display
+            await loadEncryptedHistoryFromSession();
+        }
+
+        function logoutFromEncryptedHistory() {
+            sessionStorage.removeItem('currentHistoryKey');
+            document.getElementById('encrypted-history-display').style.display = 'none';
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('login-encryption-key').value = '';
+            showLoginStatus('', '');
+        }
+
+        async function resetEncryptionKey() {
+            if (!confirm('ATTENTION: Cette action va supprimer définitivement tout l\'historique crypté et réinitialiser la clé. Cette action est IRRÉVERSIBLE. Continuer ?')) {
+                return;
+            }
+
+            localStorage.removeItem('encryptedHistoryKeyInfo');
+            localStorage.removeItem('encryptedHistoryMasterKeyHash');
+            localStorage.removeItem('encryptedHistory');
+            localStorage.removeItem('tempEncryptedHistory');
+            sessionStorage.removeItem('currentHistoryKey');
+
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('setup-section').style.display = 'block';
+            document.getElementById('encrypted-history-display').style.display = 'none';
+            document.getElementById('history-encryption-key').value = '';
+            document.getElementById('login-encryption-key').value = '';
+
+            showEncryptionStatus('Clé réinitialisée avec succès', 'success');
+        }
+
+        function showLoginStatus(message, type) {
+            const statusDiv = document.getElementById('login-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `login-status ${type}`;
+            setTimeout(() => {
+                if (type !== 'success') {
+                    statusDiv.textContent = '';
+                    statusDiv.className = 'login-status';
+                }
+            }, 5000);
+        }
+
+        async function generateSHA256(message) {
+            const messageBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', messageBuffer);
+            const hashArray = new Uint8Array(hashBuffer);
+            return Array.from(hashArray)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function displayEncryptedHistory(history, encryptedData = []) {
+            const displayDiv = document.getElementById('encrypted-history-display');
+            const listDiv = document.getElementById('encrypted-history-list');
+
+            // Update entry count
+            const countSpan = document.getElementById('encrypted-history-count');
+            countSpan.textContent = `(${history.length} entrées)`;
+
+            if (history.length === 0) {
+                listDiv.innerHTML = '<p class="no-history">Aucune entrée dans l\'historique crypté</p>';
+                displayDiv.style.display = 'block';
+                return;
+            }
+
+            listDiv.innerHTML = '';
+            history.forEach((entry, index) => {
+                const encryptedEntry = encryptedData[index] || {};
+                const item = document.createElement('div');
+                item.className = 'encrypted-history-item';
+                item.innerHTML = `
+                    <div class="entry-header">
+                        <strong class="entry-title">Entrée #${index + 1}</strong>
+                        <span class="timestamp">${new Date(entry.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="entry-details">
+                        <div class="detail-section">
+                            <label>� Signature HMAC-SHA256:</label>
+                            <div class="signature-display-full">${entry.signature}</div>
+                        </div>
+                        <div class="detail-section">
+                            <label>� Clé secrète utilisée:</label>
+                            <div class="key-display-full">${entry.key}</div>
+                        </div>
+                        <div class="detail-section">
+                            <label>�📝 Message original:</label>
+                            <div class="message-display">${entry.message.replace(/\n/g, '<br>')}</div>
+                        </div>
+                        <div class="detail-section">
+                            <label>🔒 Données cryptées stockées (AES-GCM - Base64):</label>
+                            <div class="encrypted-data-compact">
+                                <code class="encrypted-blob">${encryptedEntry.data ? btoa(String.fromCharCode(...new Uint8Array(encryptedEntry.data))) : 'N/A'}</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="entry-actions">
+                        <button class="load-entry-btn" onclick="loadEncryptedEntry(${JSON.stringify(entry).replace(/"/g, '&quot;')})">Charger dans l'outil</button>
+                        <button class="copy-entry-btn" onclick="copyEntryDetails(${JSON.stringify({...entry, encrypted: encryptedEntry}).replace(/"/g, '&quot;')})">Copier détails</button>
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            });
+
+            displayDiv.style.display = 'block';
+        }
+
+        function loadEncryptedEntry(entry) {
+            document.getElementById('gen-message').value = entry.message;
+            document.getElementById('gen-key').value = entry.key;
+            document.getElementById('gen-signature-hex').textContent = entry.signature;
+            document.getElementById('gen-result').style.display = 'block';
+            document.getElementById('gen-download').style.display = 'inline-block';
+            window.currentSignature = entry.signature;
+            showSection('generate');
+        }
+
+        function copyEntryDetails(entry) {
+            const encrypted = entry.encrypted || {};
+            const details = `HISTORIQUE CRYPTÉ - ENTRÉE SIMPLIFIÉE
+═══════════════════════════════════════════════════════════════
+
+🔐 SIGNATURE HMAC-SHA256:
+${entry.signature}
+
+� CLÉ SECRÈTE UTILISÉE:
+${entry.key}
+
+�📝 MESSAGE ORIGINAL:
+${entry.message}
+
+🔒 DONNÉES CRYPTÉES STOCKÉES (Base64):
+${encrypted.data ? btoa(String.fromCharCode(...new Uint8Array(encrypted.data))) : 'N/A'}
+
+═══════════════════════════════════════════════════════════════
+Date: ${new Date(entry.timestamp).toLocaleString()}
+Exporté depuis SYGNA - Outil HMAC-SHA256
+${new Date().toLocaleString()}`;
+
+            navigator.clipboard.writeText(details).then(() => {
+                showEncryptionStatus('Détails copiés dans le presse-papiers', 'success');
+            }).catch(err => {
+                console.error('Erreur lors de la copie:', err);
+                showEncryptionStatus('Erreur lors de la copie', 'error');
+            });
+        }
+
+        function clearEncryptedHistory() {
+            if (confirm('Effacer tout l\'historique crypté ? Cette action est irréversible.')) {
+                localStorage.removeItem('encryptedHistory');
+                document.getElementById('encrypted-history-display').style.display = 'none';
+                showEncryptionStatus('Historique crypté effacé', 'success');
+            }
+        }
+
+        async function exportEncryptedHistory() {
+            try {
+                const historyKey = sessionStorage.getItem('currentHistoryKey');
+                if (!historyKey) {
+                    showEncryptionStatus('Erreur: Vous devez être connecté pour exporter', 'error');
+                    return;
+                }
+
+                const encryptedHistory = JSON.parse(localStorage.getItem('encryptedHistory') || '[]');
+                if (encryptedHistory.length === 0) {
+                    showEncryptionStatus('Aucune donnée à exporter', 'error');
+                    return;
+                }
+
+                const decryptedHistory = [];
+
+                for (const encryptedEntry of encryptedHistory) {
+                    try {
+                        const decryptedData = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: new Uint8Array(encryptedEntry.iv) },
+                            await crypto.subtle.importKey('raw', new Uint8Array(JSON.parse(historyKey)), 'AES-GCM', false, ['decrypt']),
+                            new Uint8Array(encryptedEntry.data)
+                        );
+
+                        const entry = JSON.parse(new TextDecoder().decode(decryptedData));
+                        decryptedHistory.push(entry);
+                    } catch (error) {
+                        console.error('Erreur lors du décryptage d\'une entrée:', error);
+                    }
+                }
+
+                // Créer un fichier texte lisible avec les données essentielles
+                let textContent = `HISTORIQUE CRYPTÉ SIMPLIFIÉ\n`;
+                textContent += `===============================\n\n`;
+                textContent += `Date d'export: ${new Date().toLocaleString()}\n`;
+                textContent += `Nombre d'entrées: ${decryptedHistory.length}\n\n`;
+
+                if (decryptedHistory.length === 0) {
+                    textContent += `Aucune entrée dans l'historique.\n`;
+                } else {
+                    const encryptedHistory = JSON.parse(localStorage.getItem('encryptedHistory') || '[]');
+
+                    decryptedHistory.forEach((entry, index) => {
+                        const encryptedEntry = encryptedHistory[index] || {};
+                        textContent += `═══════════════════════════════════════════════════════════════\n`;
+                        textContent += `ENTRÉE #${index + 1}\n`;
+                        textContent += `═══════════════════════════════════════════════════════════════\n\n`;
+
+                        textContent += `📅 Date et heure: ${new Date(entry.timestamp).toLocaleString()}\n\n`;
+
+                        textContent += `� SIGNATURE HMAC-SHA256:\n`;
+                        textContent += `${entry.signature}\n\n`;
+
+                        textContent += `� CLÉ SECRÈTE UTILISÉE:\n`;
+                        textContent += `${entry.key}\n\n`;
+
+                        textContent += `�📝 MESSAGE ORIGINAL:\n`;
+                        textContent += `${entry.message}\n\n`;
+
+                        textContent += `🔒 DONNÉES CRYPTÉES STOCKÉES (Base64):\n`;
+                        textContent += `${encryptedEntry.data ? btoa(String.fromCharCode(...new Uint8Array(encryptedEntry.data))) : 'N/A'}\n\n`;
+
+                        textContent += `═══════════════════════════════════════════════════════════════\n\n`;
+                    });
+                }
+
+                textContent += `\nFIN DE L'HISTORIQUE\n`;
+                textContent += `═══════════════════════════════════════════════════════════════\n`;
+                textContent += `Export simplifié contenant uniquement :\n`;
+                textContent += `• Les signatures HMAC-SHA256\n`;
+                textContent += `• Les clés secrètes utilisées\n`;
+                textContent += `• Les messages originaux\n`;
+                textContent += `• Les données cryptées stockées localement\n`;
+                textContent += `Conservez ce fichier en lieu sûr.\n`;
+
+                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `historique-crypte-lisible-${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showEncryptionStatus('Historique exporté en format texte lisible', 'success');
+
+            } catch (error) {
+                console.error('Erreur lors de l\'export:', error);
+                showEncryptionStatus('Erreur lors de l\'export de l\'historique', 'error');
+            }
+        }
+
+        function showEncryptionStatus(message, type) {
+            const statusDiv = document.getElementById('encryption-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `encryption-status ${type}`;
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = 'encryption-status';
+            }, 5000);
+        }
+
+        function updateKeyStrengthIndicator() {
+            const keyInput = document.getElementById('history-encryption-key');
+            const indicator = document.getElementById('key-strength-indicator');
+            const key = keyInput.value;
+
+            let strength = 0;
+            if (key.length >= 8) strength++;
+            if (key.length >= 12) strength++;
+            if (/[A-Z]/.test(key)) strength++;
+            if (/[a-z]/.test(key)) strength++;
+            if (/[0-9]/.test(key)) strength++;
+            if (/[^A-Za-z0-9]/.test(key)) strength++;
+
+            indicator.className = 'key-strength';
+            if (strength <= 2) {
+                indicator.classList.add('weak');
+            } else if (strength <= 4) {
+                indicator.classList.add('medium');
+            } else {
+                indicator.classList.add('strong');
+            }
+        }
+
+        // Modify the existing saveToHistory to also save to encrypted history
+        const originalSaveToHistory = saveToHistory;
+        saveToHistory = function(message, key, signature) {
+            originalSaveToHistory(message, key, signature);
+            saveToEncryptedHistory(message, key, signature);
         };
 
-        c.appendChild(div);
-    });
-}
+        // Copy to clipboard
+        async function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                // Visual feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copie!';
+                btn.style.backgroundColor = 'var(--success-color)';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '';
+                }, 1000);
+            } catch (err) {
+                alert('Erreur lors de la copie');
+            }
+        }
 
-/* 🔎 search */
-function searchMenus(){
-    const q = document.getElementById("search").value.toLowerCase();
+        // Load examples
+        function loadExample(message, key) {
+            document.getElementById('gen-message').value = message;
+            document.getElementById('gen-key').value = key;
+        }
 
-    filtered = db.filter(m =>
-        m.title.toLowerCase().includes(q) ||
-        m.text.toLowerCase().includes(q)
-    );
+        // Generate signature
+        async function generateSignature() {
+            const message = document.getElementById('gen-message').value.trim();
+            const key = document.getElementById('gen-key').value.trim();
+            const errorDiv = document.getElementById('gen-error');
+            const resultDiv = document.getElementById('gen-result');
+            const signatureSpan = document.getElementById('gen-signature-hex');
+            const downloadBtn = document.getElementById('gen-download');
 
-    render();
-}
+            errorDiv.textContent = '';
+            resultDiv.style.display = 'none';
+            downloadBtn.style.display = 'none';
 
-load();
-</script>
+            if (!message || !key) {
+                errorDiv.textContent = 'Veuillez remplir tous les champs.';
+                return;
+            }
 
+            try {
+                const keyBuffer = new TextEncoder().encode(key);
+                const messageBuffer = new TextEncoder().encode(message);
+
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw',
+                    keyBuffer,
+                    { name: 'HMAC', hash: 'SHA-256' },
+                    false,
+                    ['sign']
+                );
+
+                const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageBuffer);
+                const signatureArray = new Uint8Array(signature);
+                const signatureHex = Array.from(signatureArray)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+
+                signatureSpan.textContent = signatureHex;
+                resultDiv.style.display = 'block';
+                downloadBtn.style.display = 'inline-block';
+
+                window.currentSignature = signatureHex;
+                saveToHistory(message, key, signatureHex);
+
+            } catch (error) {
+                errorDiv.textContent = 'Erreur: ' + error.message;
+            }
+        }
+
+        // Verify signature
+        async function verifySignature() {
+            const message = document.getElementById('ver-message').value.trim();
+            const key = document.getElementById('ver-key').value.trim();
+            const signatureHex = document.getElementById('ver-signature').value.trim().toLowerCase();
+            const errorDiv = document.getElementById('ver-error');
+            const resultDiv = document.getElementById('ver-result');
+
+            errorDiv.textContent = '';
+            resultDiv.style.display = 'none';
+
+            if (!message || !key || !signatureHex) {
+                errorDiv.textContent = 'Veuillez remplir tous les champs.';
+                return;
+            }
+
+            // Validate hex format
+            if (!/^[0-9a-f]{64}$/.test(signatureHex)) {
+                errorDiv.textContent = 'La signature doit etre en hexadecimal (64 caracteres).';
+                return;
+            }
+
+            try {
+                const keyBuffer = new TextEncoder().encode(key);
+                const messageBuffer = new TextEncoder().encode(message);
+
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw',
+                    keyBuffer,
+                    { name: 'HMAC', hash: 'SHA-256' },
+                    false,
+                    ['sign']
+                );
+
+                const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageBuffer);
+                const signatureArray = new Uint8Array(signature);
+                const calculatedHex = Array.from(signatureArray)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+
+                resultDiv.style.display = 'block';
+                if (calculatedHex === signatureHex) {
+                    resultDiv.className = 'result-box valid';
+                    resultDiv.innerHTML = '<strong>Signature VALIDE</strong><br>La signature correspond au message et a la cle.';
+                } else {
+                    resultDiv.className = 'result-box invalid';
+                    resultDiv.innerHTML = '<strong>Signature INVALIDE</strong><br>La signature ne correspond pas.<br><br><strong>Attendu:</strong> ' + calculatedHex + '<br><strong>Recu:</strong> ' + signatureHex;
+                }
+
+            } catch (error) {
+                errorDiv.textContent = 'Erreur: ' + error.message;
+            }
+        }
+
+        // Download functions
+        function downloadSignature() {
+            if (!window.currentSignature) return;
+
+            const blob = new Blob([window.currentSignature], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'signature.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function injectKey() {
+            const key = document.getElementById('gen-key').value.trim() || document.getElementById('ver-key').value.trim();
+            if (!key) {
+                alert('Veuillez entrer une cle secrete dans l\'onglet Generer ou Verifier.');
+                return;
+            }
+
+            const keyBytes = new TextEncoder().encode(key);
+            const keyHex = Array.from(keyBytes)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+
+            const cCodeTextarea = document.getElementById('c-code');
+            let cCode = cCodeTextarea.value;
+
+            cCode = cCode.replace('"CLE_ICI"', `"${keyHex}"`);
+
+            cCodeTextarea.value = cCode;
+        }
+
+        function downloadCCode() {
+            const cCode = document.getElementById('c-code').value;
+            const blob = new Blob([cCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'verificateur.c';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            updateHistoryDisplay();
+
+            // Check if encrypted history is already configured
+            const masterKeyHash = localStorage.getItem('encryptedHistoryMasterKeyHash');
+            if (masterKeyHash) {
+                // Show login section if key is configured
+                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('setup-section').style.display = 'none';
+            } else {
+                // Show setup section if no key configured
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('setup-section').style.display = 'block';
+            }
+
+            // Add key strength indicator listener
+            const keyInput = document.getElementById('history-encryption-key');
+            if (keyInput) {
+                keyInput.addEventListener('input', updateKeyStrengthIndicator);
+            }
+        });
+    </script>
 </body>
 </html>
