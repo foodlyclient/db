@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Archives</title>
+
+<style>
+body {
+    margin:0;
+    font-family:Arial;
+    background:#0b1220;
+    color:white;
+    padding:20px;
+}
+
+.menu {
+    background:#111827;
+    margin-bottom:10px;
+    border-radius:8px;
+    overflow:hidden;
+    opacity:1;
+}
+
+.title {
+    padding:15px;
+    cursor:pointer;
+    background:#1f2937;
+    font-weight:bold;
+    display:flex;
+    justify-content:space-between;
+}
+
+.content {
+    display:none;
+    padding:15px;
+    background:#0f172a;
+    color:#d1d5db;
+}
+
+/* ouvert */
+.menu.open .content {
+    display:block;
+}
+
+/* lock style */
+.locked {
+    opacity:0.6;
+}
+
+.badge {
+    font-size:12px;
+    background:#2563eb;
+    padding:2px 6px;
+    border-radius:5px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📁 Archives</h2>
+
+<input id="search" placeholder="🔎 Rechercher..." oninput="searchMenus()" style="width:100%;padding:10px;margin-bottom:10px;">
+
+<div id="container"></div>
+
+<script>
+let db = [];
+let filtered = [];
+
+/* 👤 niveau client */
+const clientLevel = 1;
+
+/* 🌐 URL de la DB (CHANGE ICI) */
+const DB_URL = "https://raw.githubusercontent.com/foodlyclient/db/refs/heads/main/db.txt";
+
+/* 🔄 load */
+async function load(){
+    try {
+        const res = await fetch(DB_URL);
+        db = await res.json();
+        filtered = db;
+        render();
+    } catch (e) {
+        console.error("Erreur chargement DB:", e);
+        alert("Impossible de charger la base de données");
+    }
+}
+
+/* 📄 render */
+function render(){
+    const c = document.getElementById("container");
+    c.innerHTML = "";
+
+    filtered.forEach((m) => {
+        const div = document.createElement("div");
+        div.className = "menu";
+
+        if(m.perm > clientLevel){
+            div.classList.add("locked");
+        }
+
+        div.innerHTML = `
+            <div class="title">
+                <span>${m.title}</span>
+                <span class="badge">lvl ${m.perm}</span>
+            </div>
+            <div class="content">${m.text}</div>
+        `;
+
+        div.querySelector(".title").onclick = () => {
+
+            // 🚫 BLOQUAGE ouverture
+            if(m.perm > clientLevel){
+                alert("🔒 Niveau insuffisant (niveau requis: " + m.perm + ")");
+                return;
+            }
+
+            div.classList.toggle("open");
+        };
+
+        c.appendChild(div);
+    });
+}
+
+/* 🔎 search */
+function searchMenus(){
+    const q = document.getElementById("search").value.toLowerCase();
+
+    filtered = db.filter(m =>
+        m.title.toLowerCase().includes(q) ||
+        m.text.toLowerCase().includes(q)
+    );
+
+    render();
+}
+
+load();
+</script>
+
+</body>
+</html>
